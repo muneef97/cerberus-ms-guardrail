@@ -1,0 +1,35 @@
+{
+    "min_length": 15,
+    "banned_words": [
+      "hack", 
+      "attack",
+      "exploit",
+      "malware",
+      "xxx"
+    ],
+    "require_any_keywords": [
+      "dfd",
+      "data flow diagram",
+      "actor",
+      "actors",
+      "process",
+      "processes",
+      "data store",
+      "datastore",
+      "database",
+      "db",
+      "flow",
+      "flows",
+      "external",
+      "user",
+      "system",
+      "server"
+    ],
+    "hints": [
+      "Describe at least one actor (e.g., User, External System).",
+      "List one or more processes (e.g., Login, Payment, Search).",
+      "Include a data store (e.g., Database, Movie DB).",
+      "Mention at least one flow connecting components."
+    ]
+  }
+  

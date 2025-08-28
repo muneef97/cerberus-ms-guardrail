@@ -1,0 +1,9 @@
+{
+  "components": [
+    { "id": "user-1", "type": "oval", "data": { "text": "User", "tb": "tb-public" } },
+    { "id": "login", "type": "rect", "data": { "text": "Login", "tb": "tb-private" } }
+  ],
+  "connections": [
+    { "id": "f1", "from": "user-1", "to": "login", "data": { "startLabel": "username & password", "endLabel": "" } }
+  ]
+}

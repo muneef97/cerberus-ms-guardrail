@@ -1,0 +1,33 @@
+{
+  "components": [
+    {
+      "id": "user-1",
+      "type": "oval",
+      "position": {"x": 100, "y": 100},
+      "size": {"width": 120, "height": 72},
+      "data": {"text": "User"}
+    },
+    {
+      "id": "login-process",
+      "type": "rect",
+      "position": {"x": 300, "y": 100},
+      "size": {"width": 120, "height": 72},
+      "data": {"text": "Login"}
+    },
+    {
+      "id": "unused-db",
+      "type": "document",
+      "position": {"x": 500, "y": 100},
+      "size": {"width": 120, "height": 72},
+      "data": {"text": "Unused DB"}
+    }
+  ],
+  "connections": [
+    {
+      "id": "f1",
+      "from": "user-1",
+      "to": "login-process",
+      "data": { "startLabel": "username & password", "endLabel": "" }
+    }
+  ]
+}
