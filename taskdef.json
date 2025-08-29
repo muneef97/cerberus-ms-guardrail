@@ -1,0 +1,31 @@
+{
+  "family": "guardrail-td",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::<account-id>:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::<account-id>:role/ecsTaskRole",
+  "containerDefinitions": [
+    {
+      "name": "app",
+      "image": "public.ecr.aws/docker/library/nginx:stable",  
+      "essential": true,
+      "portMappings": [
+        { "containerPort": 8080, "protocol": "tcp" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/guardrail",
+          "awslogs-region": "ap-southeast-2",
+          "awslogs-stream-prefix": "app"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL","curl -fsS http://localhost:8080/docs || exit 1"],
+        "interval": 30, "timeout": 5, "retries": 3, "startPeriod": 10
+      } 
+    }
+  ]
+}
