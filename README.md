@@ -185,13 +185,5 @@ The project highlights how **AI can be safely embedded in software design pipeli
 **Muneef97**  
 Developed as part of an academic project demonstrating AI-driven validation for software system modeling.
 
----
-
-## 📜 License
-
-MIT License © 2025 Muneef97  
-You may reuse or modify this project with attribution.
-
----
 
 
