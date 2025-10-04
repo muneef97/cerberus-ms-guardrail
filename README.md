@@ -49,7 +49,7 @@ The architecture consists of two major layers:
 - **AI Layer (OpenAI)** — refines incomplete inputs and generates structured DFDs.  
 These components integrate through **n8n**, which orchestrates API calls, data parsing, and security analysis.
 
-
+![cerberus-ms-guardrail](guardrail_arch.png)
 
 ---
 
