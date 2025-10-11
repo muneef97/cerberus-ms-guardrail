@@ -41,7 +41,6 @@ These layers are connected by an **agent workflow** (LangGraph primary; n8n opti
 
 ![cerberus-ms-guardrail](guardrail_arch.png)
 
-> Place `guardrail_arch.png` at the repo root (or update the path) so GitHub can render it.
 
 ---
 
