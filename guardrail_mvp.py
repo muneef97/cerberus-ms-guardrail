@@ -118,85 +118,110 @@ def schema_validate(canon: Dict[str, Any], schema: Dict[str, Any]) -> List[Dict[
     except Exception as ex:
         return [{"type": "schema", "path": "$", "message": f"Schema validation error: {ex}"}]
 
-def rule_validate(canon: Dict[str, Any]) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
-    errors: List[Dict[str, str]] = []
-    warnings: List[Dict[str, str]] = []
+# guardrail_mvp.py
 
-    tb_ids: Set[str] = {tb.get("id") for tb in canon.get("trust_boundaries", []) if tb.get("id")}
-    node_ids: Set[str] = set()
-    node_tb: Dict[str, str] = {}
-    node_deg: Dict[str, int] = {}
+def rule_validate(canon: dict) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """
+    Return (errors, warnings) after rule checks.
 
-    buckets = {
-        "processes": "nodes.processes",
-        "data_stores": "nodes.data_stores",
-        "external_entities": "nodes.external_entities",
-    }
+    Accepts canonical DFD where `nodes` may be either:
+      - dict-of-lists with plural or singular bucket keys, or
+      - a flat list of node dicts.
+    """
+    errs: List[Dict[str, Any]] = []
+    warns: List[Dict[str, Any]] = []
 
-    # Nodes
-    for bucket, prefix in buckets.items():
-        for i, n in enumerate(canon.get("nodes", {}).get(bucket, [])):
-            nid = n.get("id", "")
-            if nid in node_ids:
-                errors.append({"type": "rule", "path": f"{prefix}[{i}].id", "message": f"Duplicate node id '{nid}'"})
-            else:
-                node_ids.add(nid)
-            if not (n.get("name") or "").strip():
-                errors.append({"type": "rule", "path": f"{prefix}[{i}].name", "message": "Name is required"})
-            tbid = n.get("trust_boundary_id")
-            if not tbid:
-                errors.append({"type": "rule", "path": f"{prefix}[{i}].trust_boundary_id", "message": "trust_boundary_id is required"})
-            elif tbid not in tb_ids:
-                errors.append({"type": "rule", "path": f"{prefix}[{i}].trust_boundary_id", "message": f"Unknown trust_boundary_id '{tbid}'"})
-            node_tb[nid] = tbid or ""
-            node_deg[nid] = 0
+    # ---- 1) Normalize nodes into flat list + id map
+    nodes_field = canon.get("nodes", {})
+    flat_nodes: List[Dict[str, Any]] = []
 
-    # Flows
-    flow_ids: Set[str] = set()
-    pair_seen: Set[Tuple[str, str, str]] = set()
+    if isinstance(nodes_field, dict):
+        # support plural and singular keys
+        bucket_keys = (
+            "processes", "process",
+            "data_stores", "data_store",
+            "external_entities", "external_entity",
+        )
+        for key in bucket_keys:
+            items = nodes_field.get(key) or []
+            if isinstance(items, list):
+                for n in items:
+                    if isinstance(n, dict):
+                        flat_nodes.append(n)
+    elif isinstance(nodes_field, list):
+        for n in nodes_field:
+            if isinstance(n, dict):
+                flat_nodes.append(n)
 
-    for i, f in enumerate(canon.get("flows", [])):
-        fpath = f"flows[{i}]"
-        fid = f.get("id", "")
-        if fid in flow_ids:
-            errors.append({"type": "rule", "path": f"{fpath}.id", "message": f"Duplicate flow id '{fid}'"})
-        else:
-            flow_ids.add(fid)
+    id2node: Dict[str, Dict[str, Any]] = {}
+    dup = set()
+    for n in flat_nodes:
+        nid = n.get("id")
+        if not nid:
+            errs.append({"type": "schema", "message": "Node missing id"})
+            continue
+        if nid in id2node:
+            dup.add(nid)
+        id2node[nid] = n
+    for d in dup:
+        errs.append({"type": "schema", "message": f"Duplicate node id '{d}'"})
 
-        src = f.get("source", "")
-        tgt = f.get("target", "")
-        if src == tgt and src:
-            errors.append({"type": "rule", "path": fpath, "message": "Self-flow is not allowed (source == target)"})
-        if src not in node_ids:
-            errors.append({"type": "rule", "path": f"{fpath}.source", "message": f"Unknown source '{src}'"})
-        if tgt not in node_ids:
-            errors.append({"type": "rule", "path": f"{fpath}.target", "message": f"Unknown target '{tgt}'"})
+    # ---- 2) Flows basic checks
+    flows = canon.get("flows") or []
+    if not isinstance(flows, list):
+        flows = []
 
-        if src in node_deg:
-            node_deg[src] += 1
-        if tgt in node_deg:
-            node_deg[tgt] += 1
+    connected_ids = set()
+    for f in flows:
+        if not isinstance(f, dict):
+            continue
+        sid = f.get("source")
+        tid = f.get("target")
+        if sid:
+            connected_ids.add(sid)
+        if tid:
+            connected_ids.add(tid)
 
-        key = (src, tgt, f.get("data", ""))
-        if key in pair_seen:
-            warnings.append({"path": fpath, "message": "Duplicate flow pair (same source, target, data)"})
-        else:
-            pair_seen.add(key)
+        if sid not in id2node:
+            errs.append({"type": "rule", "message": f"Unknown source '{sid}'"})
+        if tid not in id2node:
+            errs.append({"type": "rule", "message": f"Unknown target '{tid}'"})
+        if sid and tid and sid == tid:
+            errs.append({"type": "rule", "message": f"Self-flow not allowed: '{sid}'"})
 
-    # Orphan nodes
-    for nid, deg in node_deg.items():
-        if deg == 0:
-            warnings.append({"path": f"$[node:'{nid}']", "message": "Orphan node (no incoming or outgoing flows)"})
+        data_val = f.get("data")
+        if not isinstance(data_val, str) or not data_val.strip():
+            errs.append({"type": "rule", "message": f"Flow '{f.get('id')}' must include non-empty 'data'"})
 
-    # Cross-boundary without HTTPS
-    for i, f in enumerate(canon.get("flows", [])):
-        src, tgt = f.get("source"), f.get("target")
-        tb_src, tb_tgt = node_tb.get(src), node_tb.get(tgt)
-        if tb_src and tb_tgt and tb_src != tb_tgt:
-            if f.get("protocol") != "HTTPS":
-                warnings.append({"path": f"flows[{i}]", "message": "Cross-boundary flow without HTTPS"})
+    # ---- 3) Orphan warnings
+    for nid in id2node.keys():
+        if nid not in connected_ids:
+            warns.append({"type": "rule", "message": f"Orphan node '{nid}'"})
 
-    return errors, warnings
+    # ---- 4) Cross-boundary HTTPS preference (optional warning)
+    node2tb: Dict[str, str] = {}
+    for n in flat_nodes:
+        nid = n.get("id")
+        tb = n.get("trust_boundary_id")
+        if nid and tb:
+            node2tb[nid] = tb
+
+    for f in flows:
+        if not isinstance(f, dict):
+            continue
+        proto = (f.get("protocol") or "").upper()
+        sid, tid = f.get("source"), f.get("target")
+        if sid in node2tb and tid in node2tb and node2tb[sid] != node2tb[tid]:
+            if proto != "HTTPS":
+                warns.append({
+                    "type": "security",
+                    "message": f"Cross-boundary flow '{f.get('id')}' uses '{proto or 'UNSPECIFIED'}'; prefer HTTPS"
+                })
+
+    return errs, warns
+
+
+
 
 # ---------- main (CLI) ----------
 
