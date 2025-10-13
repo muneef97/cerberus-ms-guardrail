@@ -133,8 +133,8 @@ This repository includes a small benchmark script to validate the guardrail pipe
 > python guardrail_benchmark.py --api http://127.0.0.1:8000 --n 10 --label llm-on  
 >   
 > === Refine Benchmark Summary: llm-on ===  
-> Total: 10  
-> Valid: 10 (100.0%)  
+> Total: 100  
+> Valid: 100 (100.0%)  
 > Invalid: 0 (0.0%)  
 > Latency: mean=2.135s  p50=2.205s  p95=2.556s  
 > Saved: refine_results_llm-on.csv  
