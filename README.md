@@ -11,6 +11,8 @@ Its main goal is to validate, refine, and normalize user inputs (prompts) so the
 
 This project shows how **AI + rules** can enforce data-model discipline, prevent ambiguous input, and integrate with downstream analysis such as **STRIDE** and **DREAD**.
 
+> **Scope of this repo:** this is the **Guardrail validation microservice** (`cerberus-ms-guardrail`) — the prompt/JSON validation layer of the larger CERBERUS capstone system. Orchestration (LangGraph), the graph store (Neo4j), and the visualization UI (Flutter) are separate components of the broader project and are **not** part of this repository.
+
 ---
 
 ## 🧩 Methodology
@@ -166,19 +168,17 @@ This repository includes a small benchmark script to validate the guardrail pipe
 
 ---
 
-## 🧠 Technologies Used
+## 🧠 Technologies Used (this repo)
 
 | Component            | Technology                         |
 |---------------------|------------------------------------|
 | Backend API         | FastAPI (Python)                   |
 | AI Refinement       | OpenAI GPT-4 / GPT-4o-mini         |
 | Validation          | JSON Schema + custom rules         |
-| Orchestration       | **LangGraph** (primary), n8n (opt) |
-| Graph Store         | Neo4j (DFD + threats)              |
-| Visualization       | Flutter UI (overlay/list)          |
-| Security Framework  | STRIDE + DREAD                     |
 | Containerization    | Docker                             |
-| Deployment          | AWS ECS / EC2 (optional)           |
+| Deployment          | AWS ECS via GitHub Actions (OIDC)  |
+
+**Broader CERBERUS system (other components, not in this repo):** LangGraph orchestration (primary; n8n optional), Neo4j graph store (DFD + threats), Flutter visualization UI, STRIDE + DREAD threat-modelling layer.
 
 ---
 
